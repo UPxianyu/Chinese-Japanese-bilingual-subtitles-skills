@@ -10,7 +10,7 @@ manifest.json: [{"key":"01_糸","name":"糸","start":259.0,"end":432.0}, ...]
 cues.json: {"01_糸":[[start,end,原文,译文], ...], ...}
   时间同样相对 range-start。
 """
-import argparse, json, os, re, subprocess, sys
+import argparse, json, os, re, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAKE_SUBS = os.path.join(HERE, "make_bilingual_subs.py")
@@ -22,7 +22,13 @@ def safe_key(key):
 
 
 def ass_filter_path(p):
-    return p.replace("\\", "/").replace(":", "\\:")
+    if os.name == "nt":
+        return p.replace("\\", "/").replace(":", "\\:")
+    return p
+
+
+def resolve_tool(value, name):
+    return value or shutil.which(name) or name
 
 
 def fmt_hms(t):
@@ -44,10 +50,11 @@ def main():
     ap.add_argument("--out-dir", required=True)
     ap.add_argument("--pad", type=float, default=3.0)
     ap.add_argument("--only", default=None, help="只处理 key 含该子串的分段")
-    ap.add_argument("--ffmpeg", default="ffmpeg")
+    ap.add_argument("--ffmpeg", default=None, help="ffmpeg 可执行文件；默认从 PATH 查找")
     ap.add_argument("--crf", type=int, default=21)
     ap.add_argument("--preset", default="veryfast")
     args = ap.parse_args()
+    args.ffmpeg = resolve_tool(args.ffmpeg, "ffmpeg")
 
     manifest = json.load(open(args.manifest, encoding="utf-8"))
     cues = json.load(open(args.cues, encoding="utf-8"))

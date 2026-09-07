@@ -1,6 +1,10 @@
 # 中日双语-演唱会字幕-带歌曲翻译-codexskill
 
-为演唱会、LIVE、现场音乐视频制作并烧录双语字幕（原文 + 译文）的 Codex skill。固定流水线：查询歌单 → 抽音频 → ASR → 扒官方歌词并对轴 → 校对翻译 → 分段审核 → 按原范围整合。
+为演唱会、LIVE、现场音乐视频制作并烧录双语字幕（原文 + 译文）的 Codex skill。固定流水线：查询歌单 → 抽音频 → ASR → 获取歌词并对轴 → 校对翻译 → 分段审核 → 按原范围整合。
+
+## 版权与使用边界
+
+本仓库只提供字幕制作流程和脚本。用户必须拥有源视频、歌词和译文的合法使用权，并遵守当地著作权法律。未获授权的内容不要抓取、烧录或公开分发。详见 [DISCLAIMER.md](DISCLAIMER.md)。
 
 ## 成片效果
 
@@ -42,7 +46,28 @@ Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md
 
 - ffmpeg / ffprobe，需带 `libass` 和 `libx264`
 - Python 3.10+，ASR 需在虚拟环境中安装 `faster-whisper`
-- mojigeci 歌词来源通过内置 `scripts/moji_fetch.py` 调用，无需额外依赖
+- 歌词来源默认不依赖第三方密钥；如使用 mojigeci，需要自行设置 `MOJIGECI_SECRET`
+
+## 歌词来源
+
+歌词来源采用可插拔设计，优先级为：
+
+1. 用户主动提供的官方歌词、LRC 或翻译文件；
+2. 用户明确授权使用的 mojigeci；
+3. ASR 转写 + 校对 + 翻译兜底。
+
+使用 mojigeci 前设置环境变量：
+
+```powershell
+$env:MOJIGECI_SECRET = "你的密钥"
+python .\scripts\moji_fetch.py --provider mojigeci search "花譜 糸"
+```
+
+用户提供的本地 JSON 歌词文件可用：
+
+```powershell
+python .\scripts\moji_fetch.py --provider file song .\lyrics.json
+```
 
 ## 主要脚本
 
@@ -52,4 +77,18 @@ Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md
 - `scripts/build_segments.py`：按歌曲/段落生成审核片段
 - `scripts/merge_segments.py`：按原范围一次性整合并校验时长
 
-详细流程见 `SKILL.md` 和 `references/mojigeci.md`。
+详细流程见 `SKILL.md`、`references/lyrics_sources.md` 和 `references/mojigeci.md`。
+
+## 测试
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+仓库配置了 GitHub Actions，会在 push / pull request 时运行最小冒烟测试。
+
+## 许可证与安全
+
+- 代码采用 [MIT License](LICENSE)
+- 使用边界见 [DISCLAIMER.md](DISCLAIMER.md)
+- 安全报告方式见 [SECURITY.md](SECURITY.md)

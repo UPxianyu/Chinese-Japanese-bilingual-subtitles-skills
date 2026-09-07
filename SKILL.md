@@ -1,19 +1,21 @@
 ---
 name: concert-bilingual-subtitles
-description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（原文+译文，信达雅），支持指定原语言与时间范围。流程为：查询歌单→抽音频→ASR→优先扒 mojigeci 官方歌词并对轴→校对翻译→先按歌曲/段落分段输出供用户审核修改→用户确认后再按原范围一次性整合并校验成片时长与原要求一致。当用户要求给演唱会、现场演出、音乐视频加字幕、配双语字幕、先分段审核再合并时使用；不适用于不需要歌词/词级对轴的普通纯翻译字幕。
+description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（原文+译文，信达雅），支持指定原语言与时间范围。流程为：查询歌单→抽音频→ASR→优先使用用户提供或已授权的歌词并对轴（可选 mojigeci）→校对翻译→先按歌曲/段落分段输出供用户审核修改→用户确认后再按原范围一次性整合并校验成片时长与原要求一致。当用户要求给演唱会、现场演出、音乐视频加字幕、配双语字幕、先分段审核再合并时使用；不适用于不需要歌词/词级对轴的普通纯翻译字幕。
 ---
 
 # 演唱会双语字幕
 
-把「查询歌单 → 抽音频 → ASR → 扒官方歌词并对轴 → 校对翻译 → 分段交付 → 审核迭代 → 按原范围整合」作为固定流水线执行。
+把「查询歌单 → 抽音频 → ASR → 获取歌词并对轴 → 校对翻译 → 分段交付 → 审核迭代 → 按原范围整合」作为固定流水线执行。
 
 > 下文 `scripts/` 均指本 skill 目录下的 `scripts/`。若当前工作目录不是 skill 目录，请改用绝对路径调用；运行 ASR 脚本时优先使用 `.venv-asr` 内的 Python，而不是系统 Python。
+
+> 先确认用户对视频、歌词和翻译拥有合法使用权。未获授权的内容不要抓取、烧录或公开分发。
 
 ## 输入确认
 
 先确认：视频绝对路径、起止范围（HH:MM:SS 或秒）、原声语言、译文语言、是否烧录进画面、双语排版（默认原文在上译文在下、原文字号小 2）、字体（中文 Microsoft YaHei、日文 Meiryo）。
 
-同时确认：演出/演唱会标题、歌手或团体名、场次，以及官方歌单来源（用户提供或需自行检索）。
+同时确认：演出/演唱会标题、歌手或团体名、场次，以及歌词来源。若用户主动提供了官方歌词、LRC、翻译文件或文本，优先使用；没有提供就先询问。仍无歌词来源时，使用 ASR 转写后校对翻译，并在校对说明中标注 `ASR`。
 
 ## 工具准备（一次性，优先国内镜像）
 
@@ -21,7 +23,7 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 - Python 环境：`python -m venv .venv-asr`，然后 `python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple faster-whisper`。Windows 后续用 `.venv-asr\Scripts\python.exe`，macOS/Linux 用 `.venv-asr/bin/python` 或先 `source .venv-asr/bin/activate`。
 - CUDA（可选，RTX）：`.venv-asr\Scripts\python.exe -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple "nvidia-cublas-cu12>=12.8,<13" "nvidia-cudnn-cu12>=9.8,<10"`，运行前把 `site-packages\nvidia\{cudnn,cublas,nvrtc}\bin` 加入 PATH。
 - 模型：需要词级时间戳必须用标准 Whisper（kotoba 的 `word_timestamps` 会闪退）。优先 `Systran/faster-whisper-large-v3`；大文件卡死时改用魔搭 `https://modelscope.cn/api/v1/models/Systran/faster-whisper-large-v3/repo?Revision=master&FilePath=model.bin`。
-- 歌词检索：`scripts/moji_fetch.py` 为纯标准库实现，无需额外安装；详细用法见 [references/mojigeci.md](references/mojigeci.md)。
+- 歌词来源：`scripts/moji_fetch.py` 支持可插拔来源，纯标准库实现。用户提供的本地 JSON 文件用 `--provider file`；mojigeci 用 `--provider mojigeci`，且需通过 `MOJIGECI_SECRET` 提供签名密钥。详细策略见 [references/lyrics_sources.md](references/lyrics_sources.md)，接口细节见 [references/mojigeci.md](references/mojigeci.md)。
 
 ## 执行步骤
 
@@ -31,12 +33,16 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 - `<venv-python> scripts/asr_transcribe.py audio.wav <model> --lang <原语言> --word-timestamps --out segments.json`
 - 必须保留 `words` 词级时间戳（后续对轴靠它）。
 
-### 2. 查询演唱会歌单并扒官方歌词（演唱会关键）
+### 2. 查询演唱会歌单并获取歌词（演唱会关键）
 
-- 先确定演出标题、歌手/团体名与场次，并通过网络搜索或用户提供的 setlist 整理出曲目清单；MC 与未公开新曲也一并记录。
-- 歌词与中文翻译**优先使用 mojigeci**：用 `scripts/moji_fetch.py` 按「歌名 + 歌手」搜索并抓取 `lyrics`（原文）与 `tlyric`（中文翻译）。接口、签名、清洗规则见 [references/mojigeci.md](references/mojigeci.md)。
-- 找不到、缺句或明显错误时，退回 ASR 校对文本（MC、口白、未公开新曲默认用 ASR）。
-- 把每首歌整理成「歌词行 + 参考 LRC 时间 + 译文」结构，供后续对轴使用。
+- 先确定演出标题、歌手/团体名与场次，通过用户提供的 setlist 或自行检索整理曲目清单；MC 与未公开新曲也一并记录。
+- 歌词来源按以下优先级选择：
+  1. 用户主动提供的官方歌词、LRC、翻译文件或文本；
+  2. 用户明确授权使用的第三方来源，例如 mojigeci；
+  3. ASR 转写 + 校对 + 翻译兜底。
+- 使用 mojigeci 前先确认 `MOJIGECI_SECRET` 已配置，再执行 `python scripts/moji_fetch.py --provider mojigeci search "歌名 歌手"`。不要假设它一定可用。
+- 找不到、缺句、译文明显错误或用户未授权第三方抓取时，退回 ASR 校对文本；MC、口白、未公开新曲默认用 ASR。
+- 把每首歌整理成「歌词行 + 参考 LRC 时间 + 译文 + 来源」结构，供后续对轴使用。
 
 ### 3. 对轴（本流程核心）
 
@@ -79,5 +85,5 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 - 帧精确：输入侧 `-ss` + 重编码，不用 `-c copy`。
 - 合并长度一致：最终整合必须从源视频按原范围重编码，绝不 concat 带 padding 的分段文件。
 - 双语排版：原文上、译文下，原文 fontsize 小 2 号；中文 Microsoft YaHei，日文 Meiryo。
-- 歌词来源：官方词优先 mojigeci（`lyrics` 原文 + `tlyric` 中文），缺失才用 ASR 校对。
+- 歌词来源：用户提供歌词/LRC 优先；经授权可选 mojigeci；否则 ASR 转写、校对并翻译。
 - 交付物：分段 mp4/ass/srt + 清单 + 校对说明（记录纠错与翻译取舍）。

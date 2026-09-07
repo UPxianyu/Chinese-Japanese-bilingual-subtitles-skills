@@ -6,5 +6,7 @@ output/
 *.wav
 *.ass
 *.srt
-*.json
-!agents/openai.yaml
+segments.json
+manifest.json
+*_cues.json
+moji_*.json

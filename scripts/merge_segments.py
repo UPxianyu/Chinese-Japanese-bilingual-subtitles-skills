@@ -7,7 +7,7 @@
 cues.json: {"seg_key":[[start,end,原文,译文], ...], ...}
   时间相对 range-start；本脚本会把所有分段 cue 合并后按原范围烧录（不拼接分段文件）。
 """
-import argparse, json, os, subprocess, sys
+import argparse, json, os, shutil, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MAKE_SUBS = os.path.join(HERE, "make_bilingual_subs.py")
@@ -15,7 +15,13 @@ PY = sys.executable
 
 
 def ass_filter_path(p):
-    return p.replace("\\", "/").replace(":", "\\:")
+    if os.name == "nt":
+        return p.replace("\\", "/").replace(":", "\\:")
+    return p
+
+
+def resolve_tool(value, name):
+    return value or shutil.which(name) or name
 
 
 def main():
@@ -25,11 +31,13 @@ def main():
     ap.add_argument("--range-end", type=float, required=True)
     ap.add_argument("--cues", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--ffmpeg", default="ffmpeg")
-    ap.add_argument("--ffprobe", default="ffprobe")
+    ap.add_argument("--ffmpeg", default=None, help="ffmpeg 可执行文件；默认从 PATH 查找")
+    ap.add_argument("--ffprobe", default=None, help="ffprobe 可执行文件；默认从 PATH 查找")
     ap.add_argument("--crf", type=int, default=18)
     ap.add_argument("--preset", default="medium")
     args = ap.parse_args()
+    args.ffmpeg = resolve_tool(args.ffmpeg, "ffmpeg")
+    args.ffprobe = resolve_tool(args.ffprobe, "ffprobe")
 
     cues = json.load(open(args.cues, encoding="utf-8"))
     flat = []

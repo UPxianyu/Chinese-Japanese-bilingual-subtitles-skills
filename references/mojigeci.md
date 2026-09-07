@@ -2,7 +2,7 @@
 
 ## 何时使用
 
-演唱会歌词与中文翻译的**首选来源**。当某首歌在 mojigeci 找不到、缺句或译文明显错误时，才退回 ASR 校对文本。
+演唱会歌词与中文翻译的**可选来源之一**。用户提供歌词/LRC 时优先使用；未配置密钥、未获授权、找不到、缺句或译文明显错误时，退回 ASR 校对文本。
 
 ## 网址与入口
 
@@ -12,7 +12,7 @@
 
 ## 接口（推荐直接调用 scripts/moji_fetch.py）
 
-接口无需登录 Cookie，只需正确的签名与请求头。Base 为 `https://mojigeci.com/zh-Hans/`。
+接口无需登录 Cookie，但需要正确的签名与请求头。签名密钥不再内置在脚本中，使用前设置 `MOJIGECI_SECRET`。Base 为 `https://mojigeci.com/zh-Hans/`。
 
 ### 1. 搜索：`api/search_lists`
 
@@ -22,7 +22,7 @@ GET 参数：
 - `page`：页码，从 1 开始
 - `pageSize`：每页条数（常用 12）
 - `timestamp`：毫秒时间戳（脚本自动生成）
-- `signature`：`sha256(keyword + str(timestamp) + SECRET)`，其中 `SECRET = "wmn_api_secret_2024_v1"`
+- `signature`：`sha256(keyword + str(timestamp) + MOJIGECI_SECRET)`
 
 返回路径：`res["data"]["data"]` 为数组，每条含 `id`、`name`、`artist`（数组）。
 
@@ -62,8 +62,8 @@ Accept-Language: zh-CN,zh;q=0.9,ja;q=0.8
 ## 使用策略
 
 1. 先确认演出标题、歌手/团体与官方歌单，逐首生成关键词。
-2. 每首用 `python scripts/moji_fetch.py search "歌名 歌手"` 搜索，选 id（优先歌手匹配、`lyrics` 非空）。
-3. 用 `python scripts/moji_fetch.py lyrics <id> [关键词]` 取 `lyrics` 与 `tlyric`。
+2. 每首用 `python scripts/moji_fetch.py --provider mojigeci search "歌名 歌手"` 搜索，选 id（优先歌手匹配、`lyrics` 非空）。
+3. 用 `python scripts/moji_fetch.py --provider mojigeci lyrics <id> [关键词]` 取 `lyrics` 与 `tlyric`。
 4. 原文取 `lyrics`；中文译文优先取 `tlyric`，但需按「信达雅」润色（tlyric 可能直译、漏译，或时间轴与原文不一致）。
 5. 团体曲/翻唱按「歌名 + 团体名（如 V.W.P / KAMITSUBAKI）」检索；用户给出官方歌单曲名时，用官方曲名检索。
 6. 找不到或缺句时，用 ASR 词级时间戳补齐，并在校对说明里标注来源。
@@ -71,8 +71,9 @@ Accept-Language: zh-CN,zh;q=0.9,ja;q=0.8
 ## 命令行示例
 
 ```bash
-python scripts/moji_fetch.py search "花譜 糸"
-python scripts/moji_fetch.py searchall "花譜 糸" --out moji_糸.json
-python scripts/moji_fetch.py lyrics 1399849873 糸
-python scripts/moji_fetch.py song "花譜 糸" --out moji_糸_song.json
+export MOJIGECI_SECRET="你的密钥"
+python scripts/moji_fetch.py --provider mojigeci search "花譜 糸"
+python scripts/moji_fetch.py --provider mojigeci searchall "花譜 糸" --out moji_糸.json
+python scripts/moji_fetch.py --provider mojigeci lyrics 1399849873 糸
+python scripts/moji_fetch.py --provider mojigeci song "花譜 糸" --out moji_糸_song.json
 ```
