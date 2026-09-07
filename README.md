@@ -1,4 +1,4 @@
-# concert-bilingual-subtitles
+# 中日双语-演唱会字幕-带歌曲翻译-codexskill
 
 为演唱会、LIVE、现场音乐视频制作并烧录双语字幕（原文 + 译文）的 Codex skill。固定流水线：查询歌单 → 抽音频 → ASR → 扒官方歌词并对轴 → 校对翻译 → 分段审核 → 按原范围整合。
 
