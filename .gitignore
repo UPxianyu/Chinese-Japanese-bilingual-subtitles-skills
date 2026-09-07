@@ -1,0 +1,10 @@
+__pycache__/
+*.py[cod]
+.venv-asr/
+output/
+*.mp4
+*.wav
+*.ass
+*.srt
+*.json
+!agents/openai.yaml
