@@ -12,7 +12,7 @@
 - 文字样式：白色字体、黑色描边、轻阴影；原文字号比译文小 2
 - 每条 cue 只保留两行，不自动折行、不叠加
 
-![成片字幕效果](assets/preview_fullframe_58.jpg)
+![成片字幕效果](assets/preview_subtitle.png)
 
 ## 安装
 
