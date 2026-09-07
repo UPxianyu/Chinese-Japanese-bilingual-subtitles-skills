@@ -1,6 +1,6 @@
 ---
 name: concert-bilingual-subtitles
-description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（原文+译文，信达雅），支持指定原语言与时间范围。流程为：查询歌单→抽音频→ASR→优先使用用户提供或已授权的歌词并对轴（可选 mojigeci）→校对翻译→先按歌曲/段落分段输出供用户审核修改→用户确认后再按原范围一次性整合并校验成片时长与原要求一致。当用户要求给演唱会、现场演出、音乐视频加字幕、配双语字幕、先分段审核再合并时使用；不适用于不需要歌词/词级对轴的普通纯翻译字幕。
+description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（原文+译文，信达雅），支持指定原语言与时间范围。流程为：查询歌单→抽音频→ASR→优先使用用户自行找到并提供的人工歌词与翻译并对轴→校对→先按歌曲/段落分段输出供用户审核修改→用户确认后再按原范围一次性整合并校验成片时长与原要求一致。当用户要求给演唱会、现场演出、音乐视频加字幕、配双语字幕、先分段审核再合并时使用；不适用于不需要歌词/词级对轴的普通纯翻译字幕。
 ---
 
 # 演唱会双语字幕
@@ -23,7 +23,7 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 - Python 环境：`python -m venv .venv-asr`，然后 `python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple faster-whisper`。Windows 后续用 `.venv-asr\Scripts\python.exe`，macOS/Linux 用 `.venv-asr/bin/python` 或先 `source .venv-asr/bin/activate`。
 - CUDA（可选，RTX）：`.venv-asr\Scripts\python.exe -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple "nvidia-cublas-cu12>=12.8,<13" "nvidia-cudnn-cu12>=9.8,<10"`，运行前把 `site-packages\nvidia\{cudnn,cublas,nvrtc}\bin` 加入 PATH。
 - 模型：需要词级时间戳必须用标准 Whisper（kotoba 的 `word_timestamps` 会闪退）。优先 `Systran/faster-whisper-large-v3`；大文件卡死时改用魔搭 `https://modelscope.cn/api/v1/models/Systran/faster-whisper-large-v3/repo?Revision=master&FilePath=model.bin`。
-- 歌词来源：`scripts/moji_fetch.py` 支持可插拔来源，纯标准库实现。用户提供的本地 JSON 文件用 `--provider file`；mojigeci 用 `--provider mojigeci`，且需通过 `MOJIGECI_SECRET` 提供签名密钥。详细策略见 [references/lyrics_sources.md](references/lyrics_sources.md)，接口细节见 [references/mojigeci.md](references/mojigeci.md)。
+- 歌词来源：优先由用户自行寻找字幕网站，并把原文歌词和译文粘贴或提供为 LRC/TXT/JSON 文件；直接使用这些人工歌词与翻译，不主动调用第三方歌词接口。详细格式见 [references/lyrics_sources.md](references/lyrics_sources.md)。
 
 ## 执行步骤
 
@@ -36,12 +36,12 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 ### 2. 查询演唱会歌单并获取歌词（演唱会关键）
 
 - 先确定演出标题、歌手/团体名与场次，通过用户提供的 setlist 或自行检索整理曲目清单；MC 与未公开新曲也一并记录。
-- 歌词来源按以下优先级选择：
-  1. 用户主动提供的官方歌词、LRC、翻译文件或文本；
-  2. 用户明确授权使用的第三方来源，例如 mojigeci；
-  3. ASR 转写 + 校对 + 翻译兜底。
-- 使用 mojigeci 前先确认 `MOJIGECI_SECRET` 已配置，再执行 `python scripts/moji_fetch.py --provider mojigeci search "歌名 歌手"`。不要假设它一定可用。
-- 找不到、缺句、译文明显错误或用户未授权第三方抓取时，退回 ASR 校对文本；MC、口白、未公开新曲默认用 ASR。
+- 歌词与翻译按以下方式处理：
+  1. 让用户自行寻找字幕网站/官方歌词页，并把原文歌词和译文粘贴给 agent；
+  2. 用户提供 LRC/TXT/JSON 文件时，解析并整理成歌词行；
+  3. 用户暂时没有人工歌词时，使用 ASR 转写 + 校对 + 翻译兜底，并在校对说明中标注 `ASR`。
+- 不要主动推荐或调用任何第三方歌词抓取接口；只使用用户明确提供的内容。
+- MC、口白、未公开新曲默认用 ASR 校对文本。
 - 把每首歌整理成「歌词行 + 参考 LRC 时间 + 译文 + 来源」结构，供后续对轴使用。
 
 ### 3. 对轴（本流程核心）
@@ -85,5 +85,5 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 - 帧精确：输入侧 `-ss` + 重编码，不用 `-c copy`。
 - 合并长度一致：最终整合必须从源视频按原范围重编码，绝不 concat 带 padding 的分段文件。
 - 双语排版：原文上、译文下，原文 fontsize 小 2 号；中文 Microsoft YaHei，日文 Meiryo。
-- 歌词来源：用户提供歌词/LRC 优先；经授权可选 mojigeci；否则 ASR 转写、校对并翻译。
+- 歌词来源：用户自行寻找并提供的人工歌词/翻译优先；没有时 ASR 转写、校对并翻译。
 - 交付物：分段 mp4/ass/srt + 清单 + 校对说明（记录纠错与翻译取舍）。
