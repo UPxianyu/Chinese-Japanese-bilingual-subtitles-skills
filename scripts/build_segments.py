@@ -31,6 +31,41 @@ def resolve_tool(value, name):
     return value or shutil.which(name) or name
 
 
+def validate_manifest(manifest):
+    if not isinstance(manifest, list):
+        raise ValueError("manifest must be a list")
+    seen = set()
+    for index, seg in enumerate(manifest):
+        for field in ("key", "name", "start", "end"):
+            if field not in seg:
+                raise ValueError("manifest[%d] missing %s" % (index, field))
+        start = float(seg["start"])
+        end = float(seg["end"])
+        if end <= start:
+            raise ValueError("manifest[%d] end must be greater than start" % index)
+        key = seg["key"]
+        if key in seen:
+            raise ValueError("duplicate manifest key: %s" % key)
+        seen.add(key)
+    return manifest
+
+
+def validate_cues(cues):
+    if not isinstance(cues, dict):
+        raise ValueError("cues must be an object")
+    for key, rows in cues.items():
+        if not isinstance(rows, list):
+            raise ValueError("cues[%s] must be a list" % key)
+        for index, row in enumerate(rows):
+            if not isinstance(row, (list, tuple)) or len(row) < 4:
+                raise ValueError("cues[%s][%d] must contain start,end,原文,译文" % (key, index))
+            start = float(row[0])
+            end = float(row[1])
+            if end <= start:
+                raise ValueError("cues[%s][%d] end must be greater than start" % (key, index))
+    return cues
+
+
 def fmt_hms(t):
     h = int(t // 3600)
     m = int((t % 3600) // 60)
@@ -56,8 +91,16 @@ def main():
     args = ap.parse_args()
     args.ffmpeg = resolve_tool(args.ffmpeg, "ffmpeg")
 
-    manifest = json.load(open(args.manifest, encoding="utf-8"))
-    cues = json.load(open(args.cues, encoding="utf-8"))
+    if args.range_end is not None and args.range_end <= args.range_start:
+        print("[FAIL] range_end must be greater than range_start", file=sys.stderr)
+        sys.exit(2)
+
+    try:
+        manifest = validate_manifest(json.load(open(args.manifest, encoding="utf-8")))
+        cues = validate_cues(json.load(open(args.cues, encoding="utf-8")))
+    except (ValueError, TypeError) as exc:
+        print("[FAIL] invalid input: %s" % exc, file=sys.stderr)
+        sys.exit(2)
     os.makedirs(args.out_dir, exist_ok=True)
 
     summary = []

@@ -1,7 +1,9 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
 .venv-asr/
 output/
+dist/
 *.mp4
 *.wav
 *.ass

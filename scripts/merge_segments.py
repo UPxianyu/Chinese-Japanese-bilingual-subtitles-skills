@@ -35,9 +35,17 @@ def main():
     ap.add_argument("--ffprobe", default=None, help="ffprobe 可执行文件；默认从 PATH 查找")
     ap.add_argument("--crf", type=int, default=18)
     ap.add_argument("--preset", default="medium")
+    ap.add_argument("--no-overwrite", action="store_true", help="输出文件已存在时直接报错，不覆盖")
     args = ap.parse_args()
     args.ffmpeg = resolve_tool(args.ffmpeg, "ffmpeg")
     args.ffprobe = resolve_tool(args.ffprobe, "ffprobe")
+
+    if args.range_end <= args.range_start:
+        print("[FAIL] range_end must be greater than range_start", file=sys.stderr)
+        sys.exit(2)
+    if args.no_overwrite and os.path.exists(args.out):
+        print("[FAIL] output exists: %s" % args.out, file=sys.stderr)
+        sys.exit(3)
 
     cues = json.load(open(args.cues, encoding="utf-8"))
     flat = []
@@ -89,7 +97,14 @@ def main():
                         "-show_entries", "format=duration",
                         "-of", "default=noprint_wrappers=1:nokey=1", args.out],
                        capture_output=True, text=True)
-    dur = float(p.stdout.strip())
+    if p.returncode != 0 or not p.stdout.strip():
+        print("[FAIL] ffprobe duration check failed: %s" % p.stderr.strip(), file=sys.stderr)
+        sys.exit(p.returncode or 1)
+    try:
+        dur = float(p.stdout.strip())
+    except ValueError:
+        print("[FAIL] invalid duration from ffprobe: %s" % p.stdout.strip(), file=sys.stderr)
+        sys.exit(1)
     diff = abs(dur - length)
     ok = diff <= 0.5
     print("expected=%.2fs  actual=%.2fs  diff=%.2fs  %s" % (

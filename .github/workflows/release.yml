@@ -9,17 +9,32 @@ permissions:
   contents: write
 
 jobs:
-  package:
+  smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: "3.11"
+      - name: Run smoke tests
+        run: python -m unittest discover -s tests -v
+
+  package:
+    needs: smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Package skill
         run: |
           mkdir -p dist
           git archive --format=zip --prefix=concert-bilingual-subtitles/ \
             --output="dist/concert-bilingual-subtitles-${GITHUB_REF_NAME}.zip" HEAD
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum *.zip > SHA256SUMS
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           files: dist/*
           generate_release_notes: true

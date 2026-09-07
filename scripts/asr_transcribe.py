@@ -27,7 +27,7 @@ def main() -> None:
         from faster_whisper import WhisperModel
     except ImportError:
         print("缺少 faster_whisper，请先在 .venv-asr 中安装：python -m pip install faster-whisper")
-        return
+        sys.exit(1)
 
     device = args.device
     compute_type = args.compute_type
@@ -39,6 +39,7 @@ def main() -> None:
         except Exception:
             if args.device == "cuda":
                 raise
+            print("[warn] CUDA 初始化失败，回退到 CPU", file=sys.stderr)
             model = WhisperModel(args.model, device="cpu", compute_type=compute_type or "int8")
             device = "cpu"
     else:

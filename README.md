@@ -26,6 +26,18 @@ New-Item -ItemType Directory -Force "$env:USERPROFILE\.codex\skills\concert-bili
 Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md, .\Chinese-Japanese-bilingual-subtitles-skills\agents, .\Chinese-Japanese-bilingual-subtitles-skills\references, .\Chinese-Japanese-bilingual-subtitles-skills\scripts "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles"
 ```
 
+macOS / Linux：
+
+```bash
+git clone https://github.com/UPxianyu/Chinese-Japanese-bilingual-subtitles-skills.git
+mkdir -p "$HOME/.codex/skills/concert-bilingual-subtitles"
+cp -R Chinese-Japanese-bilingual-subtitles-skills/SKILL.md \
+      Chinese-Japanese-bilingual-subtitles-skills/agents \
+      Chinese-Japanese-bilingual-subtitles-skills/references \
+      Chinese-Japanese-bilingual-subtitles-skills/scripts \
+      "$HOME/.codex/skills/concert-bilingual-subtitles/"
+```
+
 安装后，在 Codex 中要求“给演唱会视频加双语字幕 / 先分段审核再合并”即可自动触发。
 
 ## 使用方式
@@ -38,6 +50,12 @@ Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md
 
 也可以指定“只处理某一段”“字幕不烧录进画面，只导出 ASS/SRT”“译文使用繁体中文”等要求。
 
+## 隐私说明
+
+- 视频内容在本地处理，不会上传完整视频。
+- ASR 只加载本地或指定模型，不把视频发送到字幕服务。
+- 用户提供的歌词、翻译仅用于本次字幕制作和审核。
+
 ## 输出文件
 
 - 分段审核：`output/切段/` 下的分段 MP4、ASS、SRT 和清单
@@ -47,7 +65,8 @@ Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md
 ## 依赖
 
 - ffmpeg / ffprobe，需带 `libass` 和 `libx264`
-- Python 3.10+，ASR 需在虚拟环境中安装 `faster-whisper`
+- Python 3.10 / 3.11（CI 覆盖这两个版本）
+- ASR 依赖：`python -m pip install -r requirements-asr.txt`
 - 歌词与翻译由用户主动提供，不依赖第三方歌词抓取接口
 
 ## 歌词来源

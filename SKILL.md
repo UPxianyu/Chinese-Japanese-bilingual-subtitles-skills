@@ -19,10 +19,10 @@ description: 为演唱会/LIVE/现场音乐视频制作并烧录双语字幕（�
 
 ## 工具准备（一次性，优先国内镜像）
 
-- ffmpeg：需带 libass + libx264 的完整版（`ffmpeg -filters` 含 `ass`、`-encoders` 含 `libx264`）。缺则从 npmmirror 的 `ffmpeg-static/b6.1.1` 下载 `ffmpeg-win32-x64.gz` 与 `ffprobe-win32-x64.gz` 解压。
+- ffmpeg：需带 libass + libx264 的完整版（`ffmpeg -filters` 含 `ass`、`-encoders` 含 `libx264`）。优先使用系统包管理器或用户已有版本；确实需要下载时，再参考 npmmirror 的 `ffmpeg-static` 或官方源，并注意版本与校验。
 - Python 环境：`python -m venv .venv-asr`，然后 `python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple faster-whisper`。Windows 后续用 `.venv-asr\Scripts\python.exe`，macOS/Linux 用 `.venv-asr/bin/python` 或先 `source .venv-asr/bin/activate`。
 - CUDA（可选，RTX）：`.venv-asr\Scripts\python.exe -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple "nvidia-cublas-cu12>=12.8,<13" "nvidia-cudnn-cu12>=9.8,<10"`，运行前把 `site-packages\nvidia\{cudnn,cublas,nvrtc}\bin` 加入 PATH。
-- 模型：需要词级时间戳必须用标准 Whisper（kotoba 的 `word_timestamps` 会闪退）。优先 `Systran/faster-whisper-large-v3`；大文件卡死时改用魔搭 `https://modelscope.cn/api/v1/models/Systran/faster-whisper-large-v3/repo?Revision=master&FilePath=model.bin`。
+- 模型：优先使用用户提供的本地模型路径。需要词级时间戳时通常使用标准 Whisper；如果 kotoba 等模型出现词级时间戳异常，改用 `Systran/faster-whisper-large-v3` 或本地已下载模型。
 - 歌词来源：优先由用户自行寻找字幕网站，并把原文歌词和译文粘贴或提供为 LRC/TXT/JSON 文件；直接使用这些人工歌词与翻译，不主动调用第三方歌词接口。详细格式见 [references/lyrics_sources.md](references/lyrics_sources.md)。
 
 ## 执行步骤
