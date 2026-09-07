@@ -12,18 +12,31 @@
 - 文字样式：白色字体、黑色描边、轻阴影；原文字号比译文小 2
 - 每条 cue 只保留两行，不自动折行、不叠加
 
-![成片字幕效果](assets/preview_subtitle_58.jpg)
-
-> 样例截取自 `成片_58.mp4`，已裁剪为仅字幕区域，避免展示可能涉及版权的画面内容。
+![成片字幕效果](assets/preview_fullframe_58.jpg)
 
 ## 安装
 
 ```powershell
 git clone https://github.com/UPxianyu/Chinese-Japanese-bilingual-subtitles-skills.git
-Copy-Item -Recurse .\Chinese-Japanese-bilingual-subtitles-skills "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles"
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles" | Out-Null
+Copy-Item -Recurse -Force .\Chinese-Japanese-bilingual-subtitles-skills\SKILL.md, .\Chinese-Japanese-bilingual-subtitles-skills\agents, .\Chinese-Japanese-bilingual-subtitles-skills\references, .\Chinese-Japanese-bilingual-subtitles-skills\scripts "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles"
 ```
 
 安装后，在 Codex 中要求“给演唱会视频加双语字幕 / 先分段审核再合并”即可自动触发。
+
+## 使用方式
+
+在 Codex 中直接描述任务即可，建议提供视频路径、原语言、译语言和时间范围：
+
+> 帮我给 `E:\videos\live.mp4` 做中日双语字幕，范围 `01:02:00` 到 `02:57:00`。先按歌曲分段输出给我审核，确认后再整合成完整成片。
+
+也可以指定“只处理某一段”“字幕不烧录进画面，只导出 ASS/SRT”“译文使用繁体中文”等要求。
+
+## 输出文件
+
+- 分段审核：`output/切段/` 下的分段 MP4、ASS、SRT 和清单
+- 最终成片：默认 `out.mp4`，同时生成同名 ASS/SRT
+- 校对说明：记录歌词纠错、翻译取舍和 ASR 兜底来源
 
 ## 依赖
 
