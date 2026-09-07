@@ -5,8 +5,8 @@
 ## 安装
 
 ```powershell
-git clone https://github.com/UPxianyu/------codexskill.git
-Copy-Item -Recurse .\------codexskill "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles"
+git clone https://github.com/UPxianyu/Chinese-Japanese-bilingual-subtitles-skills.git
+Copy-Item -Recurse .\Chinese-Japanese-bilingual-subtitles-skills "$env:USERPROFILE\.codex\skills\concert-bilingual-subtitles"
 ```
 
 安装后，在 Codex 中要求“给演唱会视频加双语字幕 / 先分段审核再合并”即可自动触发。
